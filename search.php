@@ -1,41 +1,44 @@
 <?php
-if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-	$keyword = $_GET['keyword'];
-	$minNumber = $_GET['minNumber'];
-	$maxNumber = $_GET['maxNumber'];
-	
-	$url = 'https://www.barotem.com/product/lists/3006?page=1&sell=sell&group=3006r04&display=1&orderby=1&isSearch=1';
-	$html = file_get_contents($url);
-	$dom = new DOMDocument();
-	libxml_use_internal_errors(true);
-	$dom->loadHTML($html);
-	$xpath = new DOMXPath($dom);
-	
-	$items = $xpath->query('//div[contains(@class, "col-inner") and contains(h3/text(), "'.$keyword.'")]');
-	
-	if ($minNumber && $maxNumber) {
-		$filteredItems = array();
-		foreach ($items as $item) {
-			$price = $xpath->query('.//span[contains(@class, "price")]/text()', $item)->item(0)->nodeValue;
-			$price = preg_replace('/[^0-9]/', '', $price);
-			if ($price >= $minNumber && $price <= $maxNumber) {
-				array_push($filteredItems, $item);
-			}
-		}
-		$items = $filteredItems;
-	}
-	
-	$results = '';
-	foreach ($items as $item) {
-		$title = $xpath->query('.//h3/text()', $item)->item(0)->nodeValue;
-		$link = $xpath->query('.//a/@href', $item)->item(0)->nodeValue;
-		$price = $xpath->query('.//span[contains(@class, "price")]/text()', $item)->item(0)->nodeValue;
-		
-		$results .= '<div class="item">';
-		$results .= '<h3><a href="'.$link.'">'.$title.'</a></h3>';
-		$results .= '<p>'.$price.'</p>';
-		$results .= '</div>';
-	}
-	
-	echo $results;
+header('Content-Type: text/html; charset=utf-8');
+$url = $_GET['url'];
+$keyword = $_GET['keyword'];
+$minNumber = $_GET['minNumber'];
+$maxNumber = $_GET['maxNumber'];
+
+$html = file_get_contents($url);
+
+$dom = new DOMDocument();
+@$dom->loadHTML($html);
+
+$xpath = new DOMXPath($dom);
+
+$items = $xpath->query('//div[contains(@class, "col-inner")]');
+$filteredItems = array();
+
+foreach ($items as $item) {
+    $title = $xpath->query('.//h3/a/text()', $item)->item(0)->nodeValue;
+    if (stripos($title, $keyword) !== false) {
+        $price = $xpath->query('.//span[contains(@class, "price")]/text()', $item)->item(0)->nodeValue;
+        $price = preg_replace('/[^0-9]/', '', $price);
+        if ($minNumber && $maxNumber) {
+            if ($price >= $minNumber && $price <= $maxNumber) {
+                $link = $xpath->query('.//h3/a/@href', $item)->item(0)->nodeValue;
+                $filteredItems[] = array('title' => $title, 'price' => $price, 'link' => $link);
+            }
+        } else {
+            $link = $xpath->query('.//h3/a/@href', $item)->item(0)->nodeValue;
+            $filteredItems[] = array('title' => $title, 'price' => $price, 'link' => $link);
+        }
+    }
 }
+
+$results = '';
+foreach ($filteredItems as $item) {
+    $results .= '<div class="item">';
+    $results .= '<h3><a href="' . $item['link'] . '">' . $item['title'] . '</a></h3>';
+    $results .= '<p class="price">$' . number_format($item['price']) . '</p>';
+    $results .= '</div>';
+}
+
+echo $results;
+?>
