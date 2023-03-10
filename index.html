@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>실시간 검색 결과</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+	<div class="container">
+		<h1>실시간 검색 결과</h1>
+		<form method="GET">
+			<label>검색어:</label>
+			<input type="text" name="keyword">
+			<label>숫자 범위:</label>
+			<input type="number" name="minNumber" placeholder="최소값">
+			<input type="number" name="maxNumber" placeholder="최대값">
+			<button type="submit">검색</button>
+		</form>
+		<div id="results">
+			<!-- 검색 결과 출력 -->
+		</div>
+	</div>
+	<script src="script.js"></script>
+</body>
+</html>
