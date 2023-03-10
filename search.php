@@ -1,44 +1,42 @@
 <?php
-header('Content-Type: text/html; charset=utf-8');
-$url = $_GET['url'];
-$keyword = $_GET['keyword'];
-$minNumber = $_GET['minNumber'];
-$maxNumber = $_GET['maxNumber'];
-
-$html = file_get_contents($url);
-
-$dom = new DOMDocument();
-@$dom->loadHTML($html);
-
-$xpath = new DOMXPath($dom);
-
-$items = $xpath->query('//div[contains(@class, "col-inner")]');
-$filteredItems = array();
-
-foreach ($items as $item) {
-    $title = $xpath->query('.//h3/a/text()', $item)->item(0)->nodeValue;
-    if (stripos($title, $keyword) !== false) {
-        $price = $xpath->query('.//span[contains(@class, "price")]/text()', $item)->item(0)->nodeValue;
-        $price = preg_replace('/[^0-9]/', '', $price);
-        if ($minNumber && $maxNumber) {
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $keyword = $_POST["keyword"];
+    $minNumber = $_POST["minNumber"];
+    $maxNumber = $_POST["maxNumber"];
+    
+    $html = file_get_contents('https://linw.net/search?q=' . urlencode($keyword));
+    $dom = new DOMDocument();
+    @$dom->loadHTML($html);
+    $xpath = new DOMXPath($dom);
+    $items = $xpath->query('//div[contains(@class, "col-inner") and h3[contains(text(), "'.$keyword.'")]]');
+    if ($minNumber && $maxNumber) {
+        $filteredItems = array();
+        foreach ($items as $item) {
+            $price = $xpath->query('.//span[contains(@class, "price")]/text()', $item)->item(0)->nodeValue;
+            $price = preg_replace('/[^0-9]/', '', $price);
             if ($price >= $minNumber && $price <= $maxNumber) {
-                $link = $xpath->query('.//h3/a/@href', $item)->item(0)->nodeValue;
-                $filteredItems[] = array('title' => $title, 'price' => $price, 'link' => $link);
+                array_push($filteredItems, $item);
             }
-        } else {
-            $link = $xpath->query('.//h3/a/@href', $item)->item(0)->nodeValue;
-            $filteredItems[] = array('title' => $title, 'price' => $price, 'link' => $link);
         }
+        $items = $filteredItems;
     }
-}
+    $results = '';
+    foreach ($items as $item) {
+        $title = $xpath->query('.//h3/text()', $item)->item(0)->nodeValue;
+        $link = $xpath->query('.//a/@href', $item)->item(0)->nodeValue;
+        $price = $xpath->query('.//span[contains(@class, "price")]/text()', $item)->item(0)->nodeValue;
+        $results .= '
+';
+        $results .= '
+'.$title.'
+';
+        $results .= '
+'.$price.'
 
-$results = '';
-foreach ($filteredItems as $item) {
-    $results .= '<div class="item">';
-    $results .= '<h3><a href="' . $item['link'] . '">' . $item['title'] . '</a></h3>';
-    $results .= '<p class="price">$' . number_format($item['price']) . '</p>';
-    $results .= '</div>';
+';
+        $results .= '
+';
+    }
+    echo $results;
 }
-
-echo $results;
 ?>
